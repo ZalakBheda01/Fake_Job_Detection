@@ -1,18 +1,41 @@
 import streamlit as st
-import pandas as pd
 
-st.title("📊 Dashboard")
-st.caption("Dataset overview based on the trained notebook.")
+from console_ui import inject, render, bento, tile, metric, gauge, hbar, page_header
 
-c1, c2, c3, c4 = st.columns(4)
-c1.metric("Total Job Postings", "17,880")
-c2.metric("Not Fraudulent", "17,014")
-c3.metric("Fraudulent", "866")
-c4.metric("Fraud Rate", "4.84%")
+inject()
 
-st.markdown("### Target Distribution")
-chart = pd.DataFrame({"Type": ["Not Fraudulent", "Fraudulent"], "Count": [17014, 866]})
-st.bar_chart(chart.set_index("Type"))
+TOTAL, LEGIT, FRAUD = 17880, 17014, 866
+FRAUD_PCT = FRAUD / TOTAL * 100
+BAR_MAX = max(LEGIT, FRAUD)
 
-st.markdown("### Dataset Information")
-st.write("The notebook reports 17,880 records and 18 original columns. After removing `job_id` and `department`, 16 columns remain.")
+page_header("📊 Dashboard", "Dataset overview based on the trained notebook.")
+
+render(
+    bento(
+        metric("Total Job Postings", f"{TOTAL:,}", tone="info", pct=100),
+        metric("Not Fraudulent", f"{LEGIT:,}", tone="safe", pct=LEGIT / TOTAL * 100),
+        metric("Fraudulent", f"{FRAUD:,}", tone="risk", pct=FRAUD_PCT),
+        metric("Fraud Rate", f"{FRAUD_PCT:.2f}%", tone="risk", pct=FRAUD_PCT),
+    ),
+    bento(
+        tile("<h3>Target Distribution</h3>" + gauge(FRAUD_PCT, "risk", f"{FRAUD_PCT:.2f}%", "of postings are fraudulent"), "s5"),
+        tile(
+            "<h3>Count by Type</h3>"
+            + hbar("Not Fraudulent", f"{LEGIT:,}", LEGIT / BAR_MAX * 100, "safe")
+            + hbar("Fraudulent", f"{FRAUD:,}", FRAUD / BAR_MAX * 100, "risk"),
+            "s7",
+        ),
+    ),
+    bento(
+        tile(
+            "<h3>Dataset Information</h3>"
+            '<div class="mini">'
+            "<div><b>18</b><span>original columns</span></div>"
+            "<div><b>2</b><span>removed: <code>job_id</code>, <code>department</code></span></div>"
+            "<div><b>16</b><span>columns remain</span></div>"
+            "</div>"
+            f"<p>The notebook reports {TOTAL:,} records and 18 original columns. "
+            "After removing <code>job_id</code> and <code>department</code>, 16 columns remain.</p>",
+        )
+    ),
+)
